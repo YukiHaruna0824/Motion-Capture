@@ -88,10 +88,8 @@ public class BvhParser
             if (token == KeyWord.kRoot)
             {
                 Joint rootJoint = new Joint();
-                Joint emptyJoint = new Joint()
-                {
-                    Name = "Empty"
-                };
+                Joint emptyJoint = null;
+
                 int ret = Parse_Joint(ref emptyJoint, ref rootJoint);
                 if (ret < 0)
                 {
@@ -388,7 +386,7 @@ public class BvhParser
     private Bvh _bvh;
 
 
-    private bool _debug = true;
+    private bool _debug = false;
 }
 
 
