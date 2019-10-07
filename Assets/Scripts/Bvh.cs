@@ -110,8 +110,8 @@ public class Bvh
     public void Calculate(ref Joint startJoint)
     {
         Vector3 offset = new Vector3(startJoint.Offset.x, startJoint.Offset.y, startJoint.Offset.z);
-        Matrix4x4 offsetMat = Matrix4x4.Translate(offset);
 
+        Matrix4x4 offsetMat = Matrix4x4.Translate(offset);
         List<List<float>> data = startJoint.Channel_data;
 
         for(int i = 0; i < _num_frames; i++)
@@ -119,24 +119,45 @@ public class Bvh
             Matrix4x4 tran_mat = Matrix4x4.identity;
             Matrix4x4 rot_mat = Matrix4x4.identity;
 
+            Vector3 localPos = offset;
+            Vector3 localRot = new Vector3(0, 0, 0);
+
             for (int j = 0; j < startJoint.Channels_order.Count; j++)
             {
                 Channel channel_info = startJoint.Channels_order[j];
                 if (channel_info == Channel.XPOSITION)
+                {
                     MatrixUtils.Translate(ref tran_mat, new Vector3(data[i][j], 0, 0));
+                    localPos.x += data[i][j];
+                }
                 else if (channel_info == Channel.YPOSITION)
+                {
                     MatrixUtils.Translate(ref tran_mat, new Vector3(0, data[i][j], 0));
+                    localPos.y += data[i][j];
+                }
                 else if (channel_info == Channel.ZPOSITION)
+                {
                     MatrixUtils.Translate(ref tran_mat, new Vector3(0, 0, data[i][j]));
+                    localPos.z += data[i][j];
+                }
                 else if (channel_info == Channel.XROTATION)
+                {
                     MatrixUtils.Rotate(ref rot_mat, data[i][j], Axis.X);
+                    localRot.x += data[i][j];
+                }
                 else if (channel_info == Channel.YROTATION)
+                {
                     MatrixUtils.Rotate(ref rot_mat, data[i][j], Axis.Y);
+                    localRot.y += data[i][j];
+                }
                 else if (channel_info == Channel.ZROTATION)
+                {
                     MatrixUtils.Rotate(ref rot_mat, data[i][j], Axis.Z);
+                    localRot.z += data[i][j];
+                }
             }
 
-            Matrix4x4 ltm;  //Local Transform Matrix
+            Matrix4x4 ltm;  //Transform Matrix
             if (startJoint.Parent != null)
                 ltm = startJoint.Parent.Ltm[i] * offsetMat;
             else
@@ -150,6 +171,9 @@ public class Bvh
 
             Quaternion rot = MatrixUtils.ExtractRotation(ltm);
             startJoint.Set_rot(rot, i);
+
+            startJoint.Set_localpos(localPos, i);
+            startJoint.Set_localrot(localRot, i);
         }
 
         for (int i = 0; i < startJoint.Children.Count; i++)

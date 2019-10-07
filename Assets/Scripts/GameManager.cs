@@ -6,12 +6,14 @@ public class GameManager : MonoBehaviour
 {
     public GameObject ball;
     public GameObject linePrefab;
+    public GameObject bonePrefab;
 
     public GameObject boneGenerator;
     public GameObject jointGenerator;
 
-    private List<LineRenderer> bones = new List<LineRenderer>();
-    private List<GameObject> joints = new List<GameObject>();
+    private List<LineRenderer> _lightbones = new List<LineRenderer>();
+    private List<GameObject> _joints = new List<GameObject>();
+    private List<GameObject> _bones = new List<GameObject>();
 
     private Bvh _bvh;
     private BvhParser _bp;
@@ -24,7 +26,16 @@ public class GameManager : MonoBehaviour
         _frameIndex = 0;
 
         Parse();
+
+        //Generate By World Transform Matrix
+
+        /*
         GenerateJointBone();
+        StartCoroutine(PlayAnimation());
+        */
+
+        //Generate By Local 
+        GenerateJointBone1();
         StartCoroutine(PlayAnimation());
     }
 
@@ -37,7 +48,8 @@ public class GameManager : MonoBehaviour
     {
         while (true)
         {
-            UpdateJointBone(_frameIndex);
+            //UpdateJointBone(_frameIndex);
+            UpdateJointBone1(_frameIndex);
             yield return new WaitForSeconds((float)_bvh.Frame_time);
             _frameIndex = (++_frameIndex) % _bvh.Num_frames;
         }
@@ -51,7 +63,7 @@ public class GameManager : MonoBehaviour
             GameObject jointObj = Instantiate(ball);
             jointObj.name = joint.Name;
             jointObj.transform.parent = jointGenerator.transform;
-            joints.Add(jointObj);
+            _joints.Add(jointObj);
         }
         
         //Create Joint related bone
@@ -66,7 +78,7 @@ public class GameManager : MonoBehaviour
                 LineRenderer bone = boneObj.GetComponent<LineRenderer>();
                 bone.SetColors(Color.red, Color.red);
                 bone.SetWidth(0.5f, 0.5f);
-                bones.Add(bone);
+                _lightbones.Add(bone);
             }
         }
         
@@ -77,8 +89,8 @@ public class GameManager : MonoBehaviour
         int index = 0;
         foreach (Joint joint in _bvh.Joints)
         {
-            joints[index].transform.position = joint.Pos[frame];
-            joints[index].transform.rotation = joint.Rot[frame];
+            _joints[index].transform.position = joint.Pos[frame];
+            _joints[index].transform.rotation = joint.Rot[frame];
             index++;
         }
 
@@ -87,15 +99,81 @@ public class GameManager : MonoBehaviour
         {
             foreach (Joint child in joint.Children)
             {
-                bones[index].SetPosition(0, joint.Pos[frame]);
-                bones[index].SetPosition(1, child.Pos[frame]);
+                _lightbones[index].SetPosition(0, joint.Pos[frame]);
+                _lightbones[index].SetPosition(1, child.Pos[frame]);
                 index++;
             }
         }
         
     }
 
-    public void Parse()
+    private void GenerateJointBone1()
+    {
+        //create joint
+        foreach (Joint joint in _bvh.Joints)
+        {
+            GameObject jointObj = Instantiate(ball);
+            jointObj.name = joint.Name;
+
+            if(joint.Parent != null)
+            {
+                foreach(GameObject obj in _joints)
+                {
+                    if(obj.name == joint.Parent.Name)
+                    {
+                        jointObj.transform.parent = obj.transform;
+                        break;
+                    }
+                }
+            }
+            else
+                jointObj.transform.parent = jointGenerator.transform;
+            _joints.Add(jointObj);
+        }
+
+        //Create Joint related bone
+        int index = 0;
+        foreach (Joint joint in _bvh.Joints)
+        {
+            foreach (Joint child in joint.Children)
+            {
+                Vector3 midpoint = new Vector3(child.Offset.x / 2, child.Offset.y / 2, child.Offset.z / 2);
+                if (midpoint.magnitude < 0.5)
+                    continue;
+
+                GameObject childObj = null;
+                foreach (GameObject obj in _joints)
+                {
+                    if (child.Name == obj.name)
+                    {
+                        childObj = obj;
+                        break;
+                    }
+                }
+
+                GameObject boneObj = Instantiate(bonePrefab);
+                boneObj.transform.parent = _joints[index].transform;
+                boneObj.name = joint.Name + "_" + child.Name;
+                boneObj.transform.localPosition = midpoint;
+                boneObj.transform.localScale = new Vector3(0.75f, 0.75f, midpoint.magnitude * 2 - 1);
+                boneObj.transform.LookAt(_joints[index].transform);
+            }
+            index++;
+        }
+
+    }
+
+    private void UpdateJointBone1(int frame)
+    {
+        int index = 0;
+        foreach (Joint joint in _bvh.Joints)
+        {
+            _joints[index].transform.localPosition = joint.LocalPos[frame];
+            _joints[index++].transform.localRotation = Quaternion.Euler(joint.LocalRot[frame]);
+        }
+    }
+
+    private void Parse()
     {
         string fp = System.IO.Path.Combine(Application.streamingAssetsPath, "walk_01.bvh");
         Debug.Log(fp);
