@@ -56,6 +56,18 @@ public class Joint
         set { _channel_data = value; }
     }
 
+    public List<Vector3> LocalPos
+    {
+        get { return _localpos; }
+        set { _localpos = value; }
+    }
+
+    public List<Vector3> LocalRot
+    {
+        get { return _localrot; }
+        set { _localrot = value; }
+    }
+
     public List<Matrix4x4> Ltm
     {
         get { return _ltm; }
@@ -108,6 +120,23 @@ public class Joint
             _rot.Add(rot);
     }
 
+    public void Set_localpos(Vector3 pos, int frame)
+    {
+        if (frame > 0 && frame < _localpos.Count)
+            _localpos[frame] = pos;
+        else
+            _localpos.Add(pos);
+    }
+
+    public void Set_localrot(Vector3 rot, int frame)
+    {
+        if (frame > 0 && frame < _localrot.Count)
+            _localrot[frame] = rot;
+        else
+            _localrot.Add(rot);
+    }
+
+
     private Joint _parent;
     private string _name;
     private Offset _offset;
@@ -115,6 +144,10 @@ public class Joint
 
     private List<Joint> _children = new List<Joint>();
     private List<List<float>> _channel_data = new List<List<float>>();
+
+    private List<Vector3> _localpos = new List<Vector3>();  //Local Position
+    private List<Vector3> _localrot = new List<Vector3>();  //Local EulerAngle
+
 
     private List<Matrix4x4> _ltm = new List<Matrix4x4>();   //Local Transform Matrix for each frame
     private List<Vector3> _pos = new List<Vector3>();       //World Position for each frame
