@@ -1,7 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-
-
 using UnityEngine;
 public struct Offset
 {
@@ -70,6 +68,12 @@ public class Joint
         set { _pos = value; }
     }
 
+    public List<Quaternion> Rot
+    {
+        get { return _rot; }
+        set { _rot = value; }
+    }
+
     public int num_channels()
     {
         return _channels_order.Count;
@@ -96,6 +100,14 @@ public class Joint
             _pos.Add(pos);
     }
 
+    public void Set_rot(Quaternion rot, int frame)
+    {
+        if (frame > 0 && frame < _rot.Count)
+            _rot[frame] = rot;
+        else
+            _rot.Add(rot);
+    }
+
     private Joint _parent;
     private string _name;
     private Offset _offset;
@@ -105,6 +117,7 @@ public class Joint
     private List<List<float>> _channel_data = new List<List<float>>();
 
     private List<Matrix4x4> _ltm = new List<Matrix4x4>();   //Local Transform Matrix for each frame
-    private List<Vector3> _pos = new List<Vector3>();     //World Position for each frame
+    private List<Vector3> _pos = new List<Vector3>();       //World Position for each frame
+    private List<Quaternion> _rot = new List<Quaternion>(); //World Rotation for each frame
 }
 

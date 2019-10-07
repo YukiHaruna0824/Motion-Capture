@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System;
 
 public class GameManager : MonoBehaviour
 {
@@ -14,38 +13,34 @@ public class GameManager : MonoBehaviour
     private List<LineRenderer> bones = new List<LineRenderer>();
     private List<GameObject> joints = new List<GameObject>();
 
+    private Bvh _bvh;
+    private BvhParser _bp;
+    private int _frameIndex;
+
     void Start()
     {
         _bvh = new Bvh();
         _bp = new BvhParser();
         _frameIndex = 0;
-        _isplayed = true;
-        _iscreated = false;
 
         Parse();
+        GenerateJointBone();
+        StartCoroutine(PlayAnimation());
     }
 
     void Update()
     {
-        
-        if (_isplayed)
-        {
-            StartCoroutine(PlayAnimation());
-            _isplayed = false;
-        }
+
     }
 
     IEnumerator PlayAnimation()
     {
-        if(!_iscreated)
+        while (true)
         {
-            GenerateJointBone();
-            _iscreated = true;
+            UpdateJointBone(_frameIndex);
+            yield return new WaitForSeconds((float)_bvh.Frame_time);
+            _frameIndex = (++_frameIndex) % _bvh.Num_frames;
         }
-        UpdateJointBone(_frameIndex);
-        yield return new WaitForSeconds((float)_bvh.Frame_time);
-        _frameIndex = (++_frameIndex) % _bvh.Num_frames;
-        _isplayed = true;
     }
 
     private void GenerateJointBone()
@@ -58,7 +53,7 @@ public class GameManager : MonoBehaviour
             jointObj.transform.parent = jointGenerator.transform;
             joints.Add(jointObj);
         }
-
+        
         //Create Joint related bone
         foreach (Joint joint in _bvh.Joints)
         {
@@ -71,21 +66,23 @@ public class GameManager : MonoBehaviour
                 LineRenderer bone = boneObj.GetComponent<LineRenderer>();
                 bone.SetColors(Color.red, Color.red);
                 bone.SetWidth(0.5f, 0.5f);
-                /*bone.SetPosition(0, joint.Pos[frame]);
-                bone.SetPosition(1, child.Pos[frame]);*/
                 bones.Add(bone);
             }
         }
+        
     }
 
     private void UpdateJointBone(int frame)
     {
         int index = 0;
         foreach (Joint joint in _bvh.Joints)
-            joints[index++].transform.position = joint.Pos[frame];
+        {
+            joints[index].transform.position = joint.Pos[frame];
+            joints[index].transform.rotation = joint.Rot[frame];
+            index++;
+        }
 
         index = 0;
-
         foreach (Joint joint in _bvh.Joints)
         {
             foreach (Joint child in joint.Children)
@@ -95,6 +92,7 @@ public class GameManager : MonoBehaviour
                 index++;
             }
         }
+        
     }
 
     public void Parse()
@@ -111,10 +109,4 @@ public class GameManager : MonoBehaviour
             bvh.GetFrameInfo();*/
         }
     }
-
-    private Bvh _bvh;
-    private BvhParser _bp;
-    private int _frameIndex;
-    private bool _isplayed;
-    private bool _iscreated;
 }

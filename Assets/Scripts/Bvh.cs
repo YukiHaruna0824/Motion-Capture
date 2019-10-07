@@ -1,7 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System;
-
 using UnityEngine;
 
 public enum Axis
@@ -54,6 +52,15 @@ public static class MatrixUtils
         return new Vector3(mat.m03, mat.m13, mat.m23);
     }
 
+    public static Quaternion ExtractRotation(Matrix4x4 mat)
+    {
+        return Quaternion.LookRotation(mat.GetColumn(2), mat.GetColumn(1));
+    }
+
+    public static Vector3 ExtractScale(Matrix4x4 mat)
+    {
+        return new Vector3(mat.GetColumn(0).magnitude, mat.GetColumn(1).magnitude, mat.GetColumn(2).magnitude);
+    }
 
 }
 
@@ -139,8 +146,12 @@ public class Bvh
             startJoint.Set_pos(pos, i);
 
             ltm = ltm * rot_mat;
-            startJoint.Set_ltm(ltm, i);       
+            startJoint.Set_ltm(ltm, i);
+
+            Quaternion rot = MatrixUtils.ExtractRotation(ltm);
+            startJoint.Set_rot(rot, i);
         }
+
         for (int i = 0; i < startJoint.Children.Count; i++)
         {
             Joint child = startJoint.Children[i];
