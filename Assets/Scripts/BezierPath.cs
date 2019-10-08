@@ -4,19 +4,144 @@ using UnityEngine;
 
 public class BezierPath : MonoBehaviour
 {
+
+    [HideInInspector]
+    public List<BezierPoint> _ctrlPoint;
+    [HideInInspector]
     public Transform[] nodes;
 
+    public bool nodeChange;
+
     public List<Vector3> simulateBezierPath = new List<Vector3>();
+
+    public float[] BezierSpeed;
+    public int[] BezierArea;
+    private int _area;
+
+    public void Preview()
+    {
+         if (nodes.Length == 1)
+        {
+            simulateBezierPath.Clear();
+            return;
+        }
+
+        SimulateBezier();
+    }
+
+    private void SimulateBezier()
+    {
+        if (nodes == null)
+            return;
+        BezierSpeed = new float[nodes.Length - 1];
+        BezierArea = new int[nodes.Length - 1];
+        float[] tmpDistance = new float[nodes.Length - 1];
+        float totalDistance = 0;
+        float arcLength = 0.05f;
+        int totalStep = 300;
+        if (simulateBezierPath != null)
+            simulateBezierPath.Clear();
+
+        // 模擬路徑
+        for (int i = 0; i < nodes.Length - 1; i++)
+        {
+            tmpDistance[i] = 0;
+            BezierArea[i] = 0;
+            for (float j = 0; j < 1; j += 1f / totalStep)
+                simulateBezierPath.Add(CalcBezier(nodes[i].position, nodes[i].GetChild(1).position,
+                    nodes[i + 1].GetChild(0).position, nodes[i + 1].position, j));
+            for (int j = i + 1; j < totalStep + i; j++)
+                tmpDistance[i] += Vector3.Distance(simulateBezierPath[j + i * totalStep], simulateBezierPath[j + 1 + i * totalStep]);
+            totalDistance += tmpDistance[i];
+        }
+
+        // 計算平均速度
+        for (int i = 0; i < nodes.Length - 1; i++)
+            BezierSpeed[i] = totalDistance / tmpDistance[i];
+
+        // 省去多餘的路徑點&調整速度分配區段
+        _area = 0;
+        int count = 0;
+        for (int i = 0; i < simulateBezierPath.Count - 1; i++)
+        {
+            if (Vector3.Distance(simulateBezierPath[i], simulateBezierPath[i + 1]) < arcLength)
+            {
+                simulateBezierPath.RemoveAt(i + 1);
+                i--;
+            }
+            else
+                BezierArea[_area]++;
+            count++;
+            if (count >= totalStep)
+            {
+                count = 0;
+                if (_area + 1 == BezierArea.Length - 1)
+                    BezierArea[BezierArea.Length - 1] = simulateBezierPath.Count;
+                else if (BezierArea.Length == 1)
+                    BezierArea[0] = simulateBezierPath.Count;
+                else
+                {
+                    BezierArea[_area + 1] += BezierArea[_area];
+                    _area++;
+                }
+            }
+        }
+
+        count = Mathf.CeilToInt(BezierSpeed[_area]) == 0 ? 1 : Mathf.CeilToInt(BezierSpeed[_area]);
+        List<Vector3> tmpPath = new List<Vector3>();
+        // 針對點與點距離過遠進行補償
+        for (int i = 0; i < simulateBezierPath.Count - 1; i += count)
+        {
+            if (i >= BezierArea[_area])
+            {
+                _area++;
+                count = Mathf.CeilToInt(BezierSpeed[_area]) == 0 ? 1 : Mathf.CeilToInt(BezierSpeed[_area]);
+            }
+            tmpPath.Add(simulateBezierPath[i]);
+            if (i + count < simulateBezierPath.Count && Vector3.Distance(simulateBezierPath[i], simulateBezierPath[i + count]) > arcLength * 2)
+            {
+                Vector3 n = (simulateBezierPath[i] + simulateBezierPath[i + count]) / 2;
+                tmpPath.Add(n);
+            }
+            else if (i + count >= simulateBezierPath.Count)
+            {
+                tmpPath.Add(simulateBezierPath[simulateBezierPath.Count - 1]);
+            }
+        }
+        simulateBezierPath = tmpPath;
+    }
+
+    private Vector3 CalcBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+    {
+        float x = p0.x * Mathf.Pow(1 - t, 3)
+            + 3 * p1.x * Mathf.Pow(1 - t, 2) * t
+            + 3 * p2.x * (1 - t) * t * t
+            + p3.x * Mathf.Pow(t, 3);
+        float y = p0.y * Mathf.Pow(1 - t, 3)
+            + 3 * p1.y * t * Mathf.Pow(1 - t, 2)
+            + 3 * p2.y * Mathf.Pow(t, 2) * (1 - t)
+            + p3.y * Mathf.Pow(t, 3);
+        float z = p0.z * Mathf.Pow(1 - t, 3)
+            + 3 * p1.z * t * Mathf.Pow(1 - t, 2)
+            + 3 * p2.z * Mathf.Pow(t, 2) * (1 - t)
+            + p3.z * Mathf.Pow(t, 3);
+        return new Vector3(x, y, z);
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.green;
+    }
 
     // Start is called before the first frame update
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 }

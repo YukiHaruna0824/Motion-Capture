@@ -26,6 +26,7 @@ namespace SteeringBehavior.LevelEditor
             instance.titleContent = new GUIContent("Editor");
             instance.minSize = new Vector2(360, 70);
             instance.maxSize = new Vector2(360, 70);
+            instance._state = 0;
         }
 
         public static void CloseWindow()
@@ -110,7 +111,7 @@ namespace SteeringBehavior.LevelEditor
 
             if (GUILayout.Button(_contentCreate, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
             {
-                CreateLevel();
+                CreatePath();
             }
 
             GUILayout.FlexibleSpace();
@@ -118,9 +119,17 @@ namespace SteeringBehavior.LevelEditor
             EditorGUILayout.EndVertical();
         }
 
-        void CreateLevel()
+        void CreatePath()
         {
-           // new GameObject("Level" + FindObjectsOfType<VisualLevel>().Length).AddComponent<VisualLevel>();
+            GameObject pm = GameObject.Find("PathManager");
+            if (pm == null)
+                pm = new GameObject("PathManager");
+            BezierPath path = new GameObject("Path" + pm.transform.childCount.ToString()).AddComponent<BezierPath>();
+
+            path.transform.SetParent(pm.transform);
+            path.transform.localPosition = Vector3.zero;
+            path.transform.localRotation = Quaternion.identity;
+            Selection.activeGameObject = path.gameObject;
         }
 
         void DrawPathGUI()
@@ -142,9 +151,7 @@ namespace SteeringBehavior.LevelEditor
             {
                 if (EditorUtility.DisplayDialog("Path", "你確定要刪除路徑", "Yes", "No"))
                 {
-
                     DestroyImmediate(_Path.gameObject);
-                    //EditorApplication.update -= DrawPathPos;
                 }
             }
 
@@ -159,11 +166,11 @@ namespace SteeringBehavior.LevelEditor
 
             if (GUILayout.Button(_contentAdd, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
             {
-                //AddNode();
+                AddNode();
             }
             if (GUILayout.Button(_contentRemove, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
             {
-                //RemoveNode();
+                RemoveNode();
             }
 
             GUILayout.FlexibleSpace();
@@ -194,17 +201,57 @@ namespace SteeringBehavior.LevelEditor
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.EndVertical();
 
-            // Simulate Area
-            EditorGUILayout.LabelField("Simulate", EditorUtils.titleStyle);
-            EditorGUILayout.BeginVertical("box");
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
+        }
 
+        void AddNode()
+        {
+            Transform transform = _Path.transform;
+            int nodeCount = transform.childCount;
 
-            GUILayout.FlexibleSpace();
-            EditorGUILayout.EndHorizontal();
-            EditorGUILayout.EndVertical();
+            GameObject goNode = new GameObject("Node (" + nodeCount + ")");
+            GameObject up = new GameObject("Slope_Up");
+            GameObject down = new GameObject("Slope_Down");
 
+            goNode.transform.SetParent(transform);
+
+            _Path.nodes = new Transform[nodeCount + 1];
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                _Path.nodes[i] = transform.GetChild(i);
+            }
+
+            Vector3 dir = new Vector3(5f, 0f, 0f);
+            if (_Path.simulateBezierPath.Count > 1)
+                dir = Vector3.Normalize(_Path.simulateBezierPath[_Path.simulateBezierPath.Count - 1] - _Path.simulateBezierPath[_Path.simulateBezierPath.Count - 2]) * 5;
+
+            _Path.nodes[nodeCount].position = _Path.nodes[nodeCount - 1].position + dir;
+            up.transform.SetParent(_Path.nodes[nodeCount].transform);
+            down.transform.SetParent(_Path.nodes[nodeCount].transform);
+            _Path.nodes[nodeCount].GetChild(0).position = _Path.nodes[nodeCount].position - dir / 5;
+            _Path.nodes[nodeCount].GetChild(1).position = _Path.nodes[nodeCount].position + dir / 5;
+            _Path._ctrlPoint.Add(new BezierPoint(_Path.nodes[nodeCount].GetChild(0).position, _Path.nodes[nodeCount].GetChild(1).position, _Path.nodes[nodeCount].position));
+            _Path.nodeChange = true;
+
+            _Path.Preview();
+        }
+
+        void RemoveNode()
+        {
+            Transform transform = _Path.transform;
+            int nodeCount = transform.childCount - 1;
+
+            if (nodeCount <= 0)
+                return;
+
+            DestroyImmediate(transform.GetChild(nodeCount).gameObject);
+            _Path._ctrlPoint.RemoveAt(nodeCount);
+            _Path.nodes = new Transform[nodeCount];
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                _Path.nodes[i] = transform.GetChild(i);
+            }
+            _Path.nodeChange = true;
+            _Path.Preview();
         }
     }
 }
