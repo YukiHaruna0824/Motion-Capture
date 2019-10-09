@@ -20,6 +20,19 @@ public struct BezierPoint
 };
 
 [Serializable]
+public class LevelData
+{
+    public PathData[] _paths;
+
+    public LevelData(BezierPath[] paths)
+    {
+        _paths = new PathData[paths.Length];
+        for (int i = 0; i < paths.Length; i++)
+            _paths[i] = new PathData(paths[i]._ctrlPoint);
+    }
+}
+
+[Serializable]
 public class PathData {
     public int _pointLength;
     public List<BezierPoint> _ctrlPoint;

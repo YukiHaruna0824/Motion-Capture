@@ -329,8 +329,8 @@ namespace SteeringBehavior.LevelEditor
             // Bezier Path
             for (int i = 0; _target.simulateBezierPath != null && i < _target.simulateBezierPath.Count - 1; i++)
             {
-                if (print == true)
-                    Debug.Log(Vector3.Magnitude(_target.simulateBezierPath[i + 1] - _target.simulateBezierPath[i]));
+                //if (print == true)
+                    //Debug.Log(Vector3.Magnitude(_target.simulateBezierPath[i + 1] - _target.simulateBezierPath[i]));
                 Handles.color = Color.yellow;
                 Handles.DrawLine(_target.simulateBezierPath[i], _target.simulateBezierPath[i + 1]);
             }

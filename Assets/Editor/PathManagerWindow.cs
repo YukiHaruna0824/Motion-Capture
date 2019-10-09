@@ -9,12 +9,12 @@ namespace SteeringBehavior.LevelEditor
     {
         public static PathManagerWindow instance;
         public static BezierPath _Path;
-
+        public GameObject pm;
         const float Button_Size = 48f;
         private int _state;
 
         // Common Icon
-        private GUIContent _contentExport, _contentImport;
+        private GUIContent _contentExportLevel, _contentImportLevel , _contentExportPath, _contentImportPath;
         // Level Icon
         private GUIContent _contentCreate;
         // Path Icon
@@ -57,17 +57,17 @@ namespace SteeringBehavior.LevelEditor
                 instance = (PathManagerWindow)GetWindow(typeof(PathManagerWindow));
 
             if (_state != 0 && _Path == null)
-            {
+            { 
                 _state = 0;
-                instance.minSize = new Vector2(360, 70);
-                instance.maxSize = new Vector2(360, 70);
+                instance.minSize = new Vector2(360, 148);
+                instance.maxSize = new Vector2(360, 148);
                 Repaint();
             }
             else if (_Path != null && Selection.activeGameObject == _Path.gameObject && _state != 1)
             {
                 _state = 1;
-                instance.minSize = new Vector2(360, 305);
-                instance.maxSize = new Vector2(360, 305);
+                instance.minSize = new Vector2(360, 225);
+                instance.maxSize = new Vector2(360, 225);
                 Repaint();
             }
 
@@ -88,8 +88,11 @@ namespace SteeringBehavior.LevelEditor
             _state = 0;
 
             // Common Icon
-            _contentExport = new GUIContent("存檔", EditorUtils.LoadIconGUI(EditorUtils.Icon.EXPORT));
-            _contentImport = new GUIContent("讀檔", EditorUtils.LoadIconGUI(EditorUtils.Icon.IMPORT));
+            _contentExportLevel = new GUIContent("儲存場景",EditorUtils.LoadIconGUI(EditorUtils.Icon.EXPORT));
+            _contentImportLevel = new GUIContent("讀取場景",EditorUtils.LoadIconGUI(EditorUtils.Icon.IMPORT));
+
+            _contentExportPath = new GUIContent("儲存路徑",EditorUtils.LoadIconGUI(EditorUtils.Icon.EXPORT));
+            _contentImportPath = new GUIContent("讀取路徑",EditorUtils.LoadIconGUI(EditorUtils.Icon.IMPORT));
 
             // Level Icon
             _contentCreate = new GUIContent("創建", EditorUtils.LoadIconGUI(EditorUtils.Icon.SHARE));
@@ -98,7 +101,7 @@ namespace SteeringBehavior.LevelEditor
             _contentAdd = new GUIContent(EditorUtils.LoadIconGUI(EditorUtils.Icon.PLUS), "增加 Node");
             _contentRemove = new GUIContent(EditorUtils.LoadIconGUI(EditorUtils.Icon.MINUS), "刪除 Node");
             _contentDestroy = new GUIContent(EditorUtils.LoadIconGUI(EditorUtils.Icon.TRASHCAN), "刪除");
-            _contentBVH = new GUIContent("匯入BVH", EditorUtils.LoadIconGUI(EditorUtils.Icon.INFORMATION), "匯入BVH");
+            _contentBVH = new GUIContent("匯入BVH", EditorUtils.LoadIconGUI(EditorUtils.Icon.IMPORT), "匯入BVH");
 
         }
 
@@ -117,11 +120,29 @@ namespace SteeringBehavior.LevelEditor
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.EndVertical();
+
+            EditorGUILayout.LabelField("Level Operation", EditorUtils.titleStyle);
+            EditorGUILayout.BeginVertical("box");
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+
+            if (GUILayout.Button(_contentImportLevel, GUILayout.Width(100), GUILayout.Height(Button_Size)))
+            {
+                ImportLevel();
+            }
+            if (GUILayout.Button(_contentExportLevel, GUILayout.Width(100), GUILayout.Height(Button_Size)))
+            {
+                ExportLevel();
+            }
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
         }
 
         void CreatePath()
         {
-            GameObject pm = GameObject.Find("PathManager");
+            if (pm == null)
+                pm = GameObject.Find("PathManager");
             if (pm == null)
                 pm = new GameObject("PathManager");
             BezierPath path = new GameObject("Path" + pm.transform.childCount.ToString()).AddComponent<BezierPath>();
@@ -130,6 +151,102 @@ namespace SteeringBehavior.LevelEditor
             path.transform.localPosition = Vector3.zero;
             path.transform.localRotation = Quaternion.identity;
             Selection.activeGameObject = path.gameObject;
+        }
+
+        void ImportLevel()
+        {
+            string path = EditorUtility.OpenFilePanel("Level Import", Application.dataPath, "json");
+
+            if (string.IsNullOrEmpty(path))
+            {
+                EditorUtility.DisplayDialog("Level", "讀取Level檔案失敗", "OK");
+                return;
+            }
+
+            string jsonContent;
+            using (StreamReader reader = new StreamReader(path))
+            {
+                jsonContent = reader.ReadToEnd();
+            }
+
+            LevelData loadLevel = JsonUtility.FromJson<LevelData>(jsonContent);
+
+            if (loadLevel == null)
+            {
+                EditorUtility.DisplayDialog("LevelEditor", "解析路徑檔案失敗", "OK");
+                return;
+            }
+
+            if (pm == null)
+                pm = GameObject.Find("PathManager");
+            if (pm == null)
+                pm = new GameObject("PathManager");
+
+            while (pm.transform.childCount > 0)
+            {
+                DestroyImmediate(pm.transform.GetChild(0).gameObject);
+            }
+
+            PathData[] paths = loadLevel._paths;
+
+            for (int i = 0; i < paths.Length; i++)
+            {
+                BezierPath bp = new GameObject("Path" + i.ToString()).AddComponent<BezierPath>();
+                bp.transform.SetParent(pm.transform);
+                bp.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+
+                bp._ctrlPoint = paths[i]._ctrlPoint;
+                bp.nodes = new Transform[paths[i]._pointLength];
+
+                for (int j = 0; j < paths[i]._pointLength; j++)
+                {
+                    // Create obj
+                    GameObject node = new GameObject("Node (" + j + ")");
+                    GameObject up = new GameObject("Slope_Up");
+                    GameObject down = new GameObject("Slope_Down");
+
+                    // Bind
+                    node.transform.SetParent(bp.transform);
+                    up.transform.SetParent(node.transform);
+                    down.transform.SetParent(node.transform);
+
+                    // Set pos
+                    node.transform.position = paths[i]._ctrlPoint[j].ori;
+                    up.transform.position = paths[i]._ctrlPoint[j].up;
+                    down.transform.position = paths[i]._ctrlPoint[j].down;
+                    bp.nodes[j] = node.transform;
+                }
+            }
+        }
+
+        void ExportLevel()
+        {
+            if (pm == null)
+                pm = GameObject.Find("PathManager");
+            if (pm == null)
+                pm = new GameObject("PathManager");
+
+            if (pm.transform.childCount <= 0)
+            {
+                EditorUtility.DisplayDialog("Level", "PathManager下沒有任何路徑資訊", "OK");
+                return;
+            }
+
+            BezierPath[] paths = pm.GetComponentsInChildren<BezierPath>();
+
+            LevelData newLevel = new LevelData(paths);
+
+            string jsonContent = JsonUtility.ToJson(newLevel);
+
+            string path = EditorUtility.SaveFilePanel("Level Export", Application.dataPath, pm.name, "json");
+            if (!string.IsNullOrEmpty(path))
+            {
+                using (StreamWriter writer = new StreamWriter(path))
+                {
+                    writer.Write(jsonContent);
+                }
+                AssetDatabase.Refresh();
+            }
         }
 
         void DrawPathGUI()
@@ -183,17 +300,17 @@ namespace SteeringBehavior.LevelEditor
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
 
-            if (GUILayout.Button(_contentImport, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
+            if (GUILayout.Button(_contentImportPath, GUILayout.Width(100), GUILayout.Height(Button_Size)))
             {
-                //ImportPath();
+                ImportPath();
             }
-            if (GUILayout.Button(_contentBVH, GUILayout.Width(90), GUILayout.Height(Button_Size)))
+            if (GUILayout.Button(_contentBVH, GUILayout.Width(100), GUILayout.Height(Button_Size)))
             {
                 //ImportBVH();
             }
-            if (GUILayout.Button(_contentExport, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
+            if (GUILayout.Button(_contentExportPath, GUILayout.Width(100), GUILayout.Height(Button_Size)))
             {
-                //ExportPath();
+                ExportPath();
             }
 
 
@@ -252,6 +369,82 @@ namespace SteeringBehavior.LevelEditor
             }
             _Path.nodeChange = true;
             _Path.Preview();
+        }
+
+        void ImportPath()
+        {
+            string path = EditorUtility.OpenFilePanel("File Import", Application.dataPath, "json");
+            if (string.IsNullOrEmpty(path))
+            {
+                EditorUtility.DisplayDialog("Editor", "讀取路徑檔案失敗", "OK");
+                return;
+            }
+
+            string jsonContent;
+            using (StreamReader reader = new StreamReader(path))
+            {
+                jsonContent = reader.ReadToEnd();
+            }
+
+            PathData data = JsonUtility.FromJson<PathData>(jsonContent);
+
+            if (data == null)
+            {
+                EditorUtility.DisplayDialog("Editor", "讀取檔案失敗", "OK");
+                return;
+            }
+
+            while (_Path.transform.childCount > 0)
+            {
+                DestroyImmediate(_Path.transform.GetChild(0).gameObject);
+            }
+
+            _Path._ctrlPoint.Clear();
+            _Path._ctrlPoint = data._ctrlPoint;
+            _Path.nodes = new Transform[_Path._ctrlPoint.Count];
+
+            // Create Path
+            for (int i = 0; i < _Path._ctrlPoint.Count; i++)
+            {
+                // Create obj
+                GameObject node = new GameObject("Node (" + i + ")");
+                GameObject up = new GameObject("Slope_Up");
+                GameObject down = new GameObject("Slope_Down");
+
+                // Bind
+                node.transform.SetParent(_Path.transform);
+                up.transform.SetParent(node.transform);
+                down.transform.SetParent(node.transform);
+
+                // Set pos
+                node.transform.position = _Path._ctrlPoint[i].ori;
+                up.transform.position = _Path._ctrlPoint[i].up;
+                down.transform.position = _Path._ctrlPoint[i].down;
+                _Path.nodes[i] = node.transform;
+            }
+        }
+
+        void ExportPath()
+        {
+
+            if (_Path._ctrlPoint.Count <= 0)
+            {
+                EditorUtility.DisplayDialog("Editor", "無路徑資訊", "OK");
+                return;
+            }
+
+            PathData file = new PathData(_Path._ctrlPoint);
+
+            string jsonContent = JsonUtility.ToJson(file);
+            string path = EditorUtility.SaveFilePanel("File Export", Application.dataPath, _Path.name, "json");
+            if (!string.IsNullOrEmpty(path))
+            {
+                using (StreamWriter writer = new StreamWriter(path))
+                {
+                    writer.Write(jsonContent);
+                }
+                AssetDatabase.Refresh();
+            }
         }
     }
 }
