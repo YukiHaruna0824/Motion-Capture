@@ -145,7 +145,7 @@ namespace SteeringBehavior.LevelEditor
 
             if (GUILayout.Button(_contentCreate, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
             {
-                //CreatePath();
+                CreatePath();
             }
             if (GUILayout.Button(_contentDestroy, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
             {

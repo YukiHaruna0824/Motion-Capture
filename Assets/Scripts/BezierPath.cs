@@ -109,6 +109,57 @@ public class BezierPath : MonoBehaviour
             }
         }
         simulateBezierPath = tmpPath;
+         
+        CutBezier();
+    }
+
+    private void CutBezier()
+    {
+
+        List<Vector3> _simulateBezierPath = new List<Vector3>();
+        float basePieceLength = 0.1f;
+        float _pieceLength;
+
+        _simulateBezierPath.Clear();
+
+        float borrow = 0f, remain = 0f, pieces = 0f;
+        Vector3 first, second = Vector3.zero;
+
+        //2nd Pass: 計算平均速度
+        for (int i = 0; i < simulateBezierPath.Count - 1; i++)
+        {
+            _pieceLength = basePieceLength;
+
+            if (i == 0)
+            {
+                first = simulateBezierPath[0];
+                second = simulateBezierPath[1];
+            }
+            else
+            {
+                first = second;
+                second = simulateBezierPath[i + 1];
+            }
+
+            float dist = Vector3.Distance(first, second) - borrow;
+
+            pieces = Mathf.Floor(dist / _pieceLength);
+            remain = dist - pieces * _pieceLength;
+            borrow = _pieceLength - remain;
+
+            Vector3 dir = (second - first).normalized;
+            second = first + dir * (dist + borrow);
+
+            pieces += 1;
+
+            for (int j = 0; j < (int)pieces; j++)
+            {
+                _simulateBezierPath.Add(first * ((pieces - j) / pieces)
+                    + second * (j / pieces));
+            }
+        }
+
+        simulateBezierPath = _simulateBezierPath;
     }
 
     private Vector3 CalcBezier(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)

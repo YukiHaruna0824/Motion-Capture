@@ -10,6 +10,8 @@ namespace SteeringBehavior.LevelEditor
     {
         private BezierPath _target;
 
+        public bool first = true;
+
         public void DestroySelf()
         {
             if (EditorUtility.DisplayDialog("Path", "你確定要刪除路徑", "Yes", "No"))
@@ -29,6 +31,8 @@ namespace SteeringBehavior.LevelEditor
 
         private void OnEnable()
         {
+            first = true;
+
             EditorApplication.playModeStateChanged += ModeChanged;
             _target = target as BezierPath;
 
@@ -92,8 +96,8 @@ namespace SteeringBehavior.LevelEditor
             // 找尋被更動的點，使該控制點為一直線
             for (int i = 0; i < _target._ctrlPoint.Count; i++)
             {
-                Debug.Log(_target._ctrlPoint.Count);
-                Debug.Log(_target.nodes.Length);
+                //Debug.Log(_target._ctrlPoint.Count);
+                //Debug.Log(_target.nodes.Length);
                 Vector3 ori = _target.nodes[i].position;
                 Vector3 up = _target.nodes[i].GetChild(0).position;
                 Vector3 down = _target.nodes[i].GetChild(1).position;
@@ -316,9 +320,17 @@ namespace SteeringBehavior.LevelEditor
                 }
             }
 
+            bool print = false;
+            if (first == true)
+            {
+                print = true;
+                first = false;
+            }
             // Bezier Path
             for (int i = 0; _target.simulateBezierPath != null && i < _target.simulateBezierPath.Count - 1; i++)
             {
+                if (print == true)
+                    Debug.Log(Vector3.Magnitude(_target.simulateBezierPath[i + 1] - _target.simulateBezierPath[i]));
                 Handles.color = Color.yellow;
                 Handles.DrawLine(_target.simulateBezierPath[i], _target.simulateBezierPath[i + 1]);
             }
