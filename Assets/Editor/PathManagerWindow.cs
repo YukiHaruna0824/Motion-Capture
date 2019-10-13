@@ -306,7 +306,7 @@ namespace SteeringBehavior.LevelEditor
             }
             if (GUILayout.Button(_contentBVH, GUILayout.Width(100), GUILayout.Height(Button_Size)))
             {
-                //ImportBVH();
+                ImportBVH();
             }
             if (GUILayout.Button(_contentExportPath, GUILayout.Width(100), GUILayout.Height(Button_Size)))
             {
@@ -445,6 +445,25 @@ namespace SteeringBehavior.LevelEditor
                 }
                 AssetDatabase.Refresh();
             }
+        }
+
+        void ImportBVH()
+        {
+            string path = EditorUtility.OpenFilePanel("File Import", Application.dataPath, "bvh");
+
+            if (string.IsNullOrEmpty(path))
+            {
+                EditorUtility.DisplayDialog("Editor", "讀取BVH檔案失敗", "OK");
+                return;
+            }
+            GameObject bonePrefab = Resources.Load<GameObject>("BoneGenerator");
+            GameObject bone = Instantiate(bonePrefab);
+            BoneGenerator boneGenerator = bone.GetComponent<BoneGenerator>();
+
+            boneGenerator.Parse(path);
+            boneGenerator.SetPath(_Path.simulateBezierPath);
+            boneGenerator.GenerateJointBone();
+            boneGenerator.Play();
         }
     }
 }
