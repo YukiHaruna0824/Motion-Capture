@@ -14,11 +14,15 @@ namespace SteeringBehavior.LevelEditor
         private int _state;
 
         // Common Icon
-        private GUIContent _contentExportLevel, _contentImportLevel , _contentExportPath, _contentImportPath;
+        private GUIContent _contentExportLevel, _contentImportLevel, _contentExportPath, _contentImportPath;
         // Level Icon
-        private GUIContent _contentCreate;
+        private GUIContent _contentCreate, _contentPlay, _contentPause;
+        // Follow Icon
+        private GUIContent _contentFixed, _contentBack, _contentTop, _contentSide;
         // Path Icon
         private GUIContent _contentAdd, _contentRemove, _contentDestroy, _contentBVH;
+
+        private int _cameraMode = -1;
 
         public static void ShowWindow()
         {
@@ -43,7 +47,7 @@ namespace SteeringBehavior.LevelEditor
                 instance = (PathManagerWindow)GetWindow(typeof(PathManagerWindow));
 
             if (_state != 0 && _Path == null)
-            { 
+            {
                 _state = 0;
                 instance.minSize = new Vector2(360, 148);
                 instance.maxSize = new Vector2(360, 148);
@@ -52,8 +56,8 @@ namespace SteeringBehavior.LevelEditor
             else if (_Path != null && Selection.activeGameObject == _Path.gameObject && _state != 1)
             {
                 _state = 1;
-                instance.minSize = new Vector2(360, 225);
-                instance.maxSize = new Vector2(360, 225);
+                instance.minSize = new Vector2(360, 400);
+                instance.maxSize = new Vector2(360, 400);
                 Repaint();
             }
 
@@ -74,21 +78,28 @@ namespace SteeringBehavior.LevelEditor
             _state = 0;
 
             // Common Icon
-            _contentExportLevel = new GUIContent("儲存場景",EditorUtils.LoadIconGUI(EditorUtils.Icon.EXPORT));
-            _contentImportLevel = new GUIContent("讀取場景",EditorUtils.LoadIconGUI(EditorUtils.Icon.IMPORT));
+            _contentExportLevel = new GUIContent("儲存場景", EditorUtils.LoadIconGUI(EditorUtils.Icon.EXPORT));
+            _contentImportLevel = new GUIContent("讀取場景", EditorUtils.LoadIconGUI(EditorUtils.Icon.IMPORT));
 
-            _contentExportPath = new GUIContent("儲存路徑",EditorUtils.LoadIconGUI(EditorUtils.Icon.EXPORT));
-            _contentImportPath = new GUIContent("讀取路徑",EditorUtils.LoadIconGUI(EditorUtils.Icon.IMPORT));
+            _contentExportPath = new GUIContent("儲存路徑", EditorUtils.LoadIconGUI(EditorUtils.Icon.EXPORT));
+            _contentImportPath = new GUIContent("讀取路徑", EditorUtils.LoadIconGUI(EditorUtils.Icon.IMPORT));
 
             // Level Icon
             _contentCreate = new GUIContent("創建", EditorUtils.LoadIconGUI(EditorUtils.Icon.SHARE));
+            _contentPlay = new GUIContent(EditorUtils.LoadIconGUI(EditorUtils.Icon.FORWARD));
+            _contentPause = new GUIContent(EditorUtils.LoadIconGUI(EditorUtils.Icon.PAUSE));
+
+            // Follow Icon
+            _contentFixed = new GUIContent("固定");
+            _contentBack = new GUIContent("後面");
+            _contentTop = new GUIContent("上面");
+            _contentSide = new GUIContent("側面");
 
             // Path Icon
             _contentAdd = new GUIContent(EditorUtils.LoadIconGUI(EditorUtils.Icon.PLUS), "增加 Node");
             _contentRemove = new GUIContent(EditorUtils.LoadIconGUI(EditorUtils.Icon.MINUS), "刪除 Node");
             _contentDestroy = new GUIContent(EditorUtils.LoadIconGUI(EditorUtils.Icon.TRASHCAN), "刪除");
             _contentBVH = new GUIContent("匯入BVH", EditorUtils.LoadIconGUI(EditorUtils.Icon.IMPORT), "匯入BVH");
-
         }
 
         void DrawInitGUI()
@@ -305,6 +316,60 @@ namespace SteeringBehavior.LevelEditor
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.EndVertical();
 
+            //Play Pause
+            EditorGUILayout.LabelField("Action", EditorUtils.titleStyle);
+            EditorGUILayout.BeginVertical("box");
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+
+            if (GUILayout.Button(_contentPlay, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
+            {
+                PlayPath();
+            }
+            BoneGenerator bg = _Path.GetComponentInChildren<BoneGenerator>();
+            GUI.backgroundColor = bg.isPaused ? EditorUtils.guiBlackColor : EditorUtils.guiDefaultColor;
+            if (GUILayout.Button(_contentPause, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
+            {
+                PausePath();
+            }
+            GUI.backgroundColor = EditorUtils.guiDefaultColor;
+
+
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+            _Path.moveSpeed = EditorGUILayout.Slider("移動速度", _Path.moveSpeed, 0.5f, 4f);
+            EditorGUILayout.EndVertical();
+
+            // Camera Control
+            EditorGUILayout.LabelField("Camera Control", EditorUtils.titleStyle);
+            EditorGUILayout.BeginVertical("box");
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+
+            if (GUILayout.Button(_contentFixed, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
+            {
+                SetCamera(0);
+            }
+            if (GUILayout.Button(_contentBack, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
+            {
+                SetCamera(1);
+            }
+            if (GUILayout.Button(_contentTop, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
+            {
+                SetCamera(2);
+            }
+            if (GUILayout.Button(_contentSide, GUILayout.Width(Button_Size), GUILayout.Height(Button_Size)))
+            {
+                if (_cameraMode == 4)
+                    SetCamera(3);
+                else
+                    SetCamera(4);
+            }
+
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
+
             // File Area
             EditorGUILayout.LabelField("File", EditorUtils.titleStyle);
             EditorGUILayout.BeginVertical("box");
@@ -323,7 +388,6 @@ namespace SteeringBehavior.LevelEditor
             {
                 ExportPath();
             }
-
 
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
@@ -345,7 +409,7 @@ namespace SteeringBehavior.LevelEditor
             _Path.nodes = new Transform[nodeCount + 1];
             for (int i = 1; i < transform.childCount; i++)
             {
-                _Path.nodes[i-1] = transform.GetChild(i);
+                _Path.nodes[i - 1] = transform.GetChild(i);
             }
 
             Vector3 dir = new Vector3(5f, 0f, 0f);
@@ -380,6 +444,33 @@ namespace SteeringBehavior.LevelEditor
             }
             _Path.nodeChange = true;
             _Path.Preview();
+        }
+
+        void PlayPath()
+        {
+            BoneGenerator bg = _Path.GetComponentInChildren<BoneGenerator>();
+            bg.isPaused = false;
+        }
+
+        void PausePath()
+        {
+            BoneGenerator bg = _Path.GetComponentInChildren<BoneGenerator>();
+            bg.isPaused = true;
+        }
+
+        void SetCamera(int mode)
+        {
+
+            _cameraMode = mode;
+            _Path.CameraMode = mode;
+        }
+
+        public static int GetCamera()
+        {
+            if (instance != null)
+                return instance._cameraMode;
+            else
+                return -1;
         }
 
         void ImportPath()

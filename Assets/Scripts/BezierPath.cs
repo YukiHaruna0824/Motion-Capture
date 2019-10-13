@@ -23,6 +23,17 @@ public class BezierPath : MonoBehaviour
     [HideInInspector]
     public string fpath;
 
+    [HideInInspector]
+    public float moveSpeed = 1.0f;
+
+    [HideInInspector]
+    public int CameraMode = 0;
+    [HideInInspector]
+    public bool CameraFollowing = false;
+
+    [HideInInspector]
+    BoneGenerator boneGenerator;
+
     public void Preview()
     {
          if (nodes.Length == 1)
@@ -42,7 +53,7 @@ public class BezierPath : MonoBehaviour
         BezierArea = new int[nodes.Length - 1];
         float[] tmpDistance = new float[nodes.Length - 1];
         float totalDistance = 0;
-        float arcLength = 0.05f;
+        float arcLength = 0.05f * moveSpeed;
         int totalStep = 300;
         if (simulateBezierPath != null)
             simulateBezierPath.Clear();
@@ -187,7 +198,7 @@ public class BezierPath : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        BoneGenerator boneGenerator = GetComponentInChildren<BoneGenerator>();
+        boneGenerator = GetComponentInChildren<BoneGenerator>();
         boneGenerator.Parse(fpath);
         boneGenerator.SetPath(simulateBezierPath);
         boneGenerator.GenerateJointBone();
@@ -197,6 +208,75 @@ public class BezierPath : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        List<Vector3> bpath = boneGenerator.GetPath();
+        if (CameraFollowing)
+            switch (CameraMode)
+            {
+                case 0:
+                    Camera.main.transform.rotation = Quaternion.Euler(0, 180, 0);
+                    Camera.main.transform.position = new Vector3(8, 16, 25);
+                    break;
+                case 1:
+                    if (bpath.Count > 0)
+                    {
+                        Vector3 backVector = new Vector3(0, 0, 0);
+                        int index = boneGenerator.GetPathIndex();
+                        if (index + 1 < bpath.Count)
+                            backVector = bpath[index] - bpath[index + 1];
+                        else
+                            backVector = bpath[index - 1] - bpath[index];
+                        backVector.Normalize();
+                        backVector *= 6f;
+                        Camera.main.transform.position = bpath[index] + new Vector3(0, 5, 0) + backVector;
+                        Camera.main.transform.LookAt(bpath[index] + backVector * -4f, Vector3.up);
+                    }
+                    break;
+                case 2:
+                    if (bpath.Count > 0)
+                    {
+                        int index = boneGenerator.GetPathIndex();
+                        Camera.main.transform.position = bpath[index] + new Vector3(0, 8, 0) ;
+                        Camera.main.transform.LookAt(bpath[index], Vector3.up);
+                    }
+                    break;
+                case 3:
+                    if (bpath.Count > 0)
+                    {
+                        Vector3 frontVector, sideVector;
+                        frontVector = sideVector = new Vector3(0, 0, 0);
+                        int index = boneGenerator.GetPathIndex();
+                        if (index + 1 < bpath.Count)
+                            frontVector = bpath[index + 1] - bpath[index];
+                        else
+                            frontVector = bpath[index] - bpath[index - 1];
 
+                        sideVector = Vector3.Cross(frontVector, Vector3.up);
+
+                        sideVector.Normalize();
+                        sideVector *= 12f;
+                        Camera.main.transform.position = bpath[index] + new Vector3(0, 5, 0) + sideVector;
+                        Camera.main.transform.LookAt(bpath[index] + sideVector * -3f, Vector3.up);
+                    }
+                    break;
+                case 4:
+                    if (bpath.Count > 0)
+                    {
+                        Vector3 frontVector, sideVector;
+                        frontVector = sideVector = new Vector3(0, 0, 0);
+                        int index = boneGenerator.GetPathIndex();
+                        if (index + 1 < bpath.Count)
+                            frontVector = bpath[index + 1] - bpath[index];
+                        else
+                            frontVector = bpath[index] - bpath[index - 1];
+
+                        sideVector = Vector3.Cross(frontVector, Vector3.up);
+
+                        sideVector.Normalize();
+                        sideVector *= -12f;
+                        Camera.main.transform.position = bpath[index] + new Vector3(0, 5, 0) + sideVector;
+                        Camera.main.transform.LookAt(bpath[index] + sideVector * -3f, Vector3.up);
+                    }
+                    break;
+            }
     }
 }

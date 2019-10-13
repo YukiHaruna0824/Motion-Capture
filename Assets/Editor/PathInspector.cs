@@ -28,7 +28,11 @@ namespace SteeringBehavior.LevelEditor
             _target = target as BezierPath;
 
             _target.gameObject.SetActive(true);
+
             PathManagerWindow._Path = _target;
+            _target.CameraFollowing = true;
+            _target.CameraMode = PathManagerWindow.GetCamera();
+
             _target.nodeChange = true;
 
             _target._ctrlPoint = new List<BezierPoint>();
@@ -40,12 +44,16 @@ namespace SteeringBehavior.LevelEditor
 
         private void OnDisable()
         {
+            _target.CameraFollowing = false;
+            _target.CameraMode = -1;
             EditorApplication.update -= Check;
             PathManagerWindow._Path = null;
         }
 
         private void OnDestroy()
         {
+            _target.CameraFollowing = false;
+            _target.CameraMode = -1;
             EditorApplication.update -= Check;
             PathManagerWindow._Path = null;
         }
@@ -65,6 +73,7 @@ namespace SteeringBehavior.LevelEditor
 
         void Check()
         {
+
             if ((CheckBezier() || _target.nodeChange))
             {
 
@@ -309,21 +318,12 @@ namespace SteeringBehavior.LevelEditor
                 }
             }
 
-            bool print = false;
-            if (first == true)
-            {
-                print = true;
-                first = false;
-            }
             // Bezier Path
             for (int i = 0; _target.simulateBezierPath != null && i < _target.simulateBezierPath.Count - 1; i++)
             {
-                //if (print == true)
-                //Debug.Log(Vector3.Magnitude(_target.simulateBezierPath[i + 1] - _target.simulateBezierPath[i]));
                 Handles.color = Color.blue;
                 Handles.DrawLine(_target.simulateBezierPath[i], _target.simulateBezierPath[i + 1]);
             }
-
         }
     }
 }

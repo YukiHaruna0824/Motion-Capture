@@ -17,6 +17,13 @@ public class BoneGenerator : MonoBehaviour
 
     private List<Vector3> _bpath = new List<Vector3>();
 
+    public bool isPaused = false;
+
+    public int GetPathIndex()
+    {
+        return _pathIndex;
+    }
+
     public void Parse(string info)
     {
         _bvh = new Bvh();
@@ -34,6 +41,11 @@ public class BoneGenerator : MonoBehaviour
     public void SetPath(List<Vector3> path)
     {
         _bpath = path;
+    }
+
+    public List<Vector3> GetPath()
+    {
+        return _bpath;
     }
 
     public void GenerateJointBone()
@@ -106,17 +118,22 @@ public class BoneGenerator : MonoBehaviour
         }
 
         transform.position = _bpath[pathIndex];
-        transform.LookAt(_bpath[(++pathIndex) % _bpath.Count], Vector3.up);
+        if (_pathIndex != _bpath.Count - 1)
+            transform.LookAt(_bpath[(pathIndex + 1) % _bpath.Count], Vector3.up);
     }
 
     IEnumerator PlayAnimation()
     {
         while (true)
         {
+
             UpdateJointBone(_frameIndex, _pathIndex);
             yield return new WaitForSeconds((float)_bvh.Frame_time);
-            _frameIndex = (++_frameIndex) % _bvh.Num_frames;
-            _pathIndex = (++_pathIndex) % _bpath.Count;
+            if (!isPaused)
+            {
+                _frameIndex = (++_frameIndex) % _bvh.Num_frames;
+                _pathIndex = (++_pathIndex) % _bpath.Count;
+            }
         }
     }
 
