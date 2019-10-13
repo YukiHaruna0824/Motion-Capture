@@ -188,10 +188,14 @@ public class BezierPath : MonoBehaviour
     void Start()
     {
         BoneGenerator boneGenerator = GetComponentInChildren<BoneGenerator>();
-        boneGenerator.Parse(fpath);
-        boneGenerator.SetPath(simulateBezierPath);
-        boneGenerator.GenerateJointBone();
-        boneGenerator.Play();
+        if (boneGenerator.Parse(fpath) == 0)
+        {
+            boneGenerator.SetPath(simulateBezierPath);
+            boneGenerator.GenerateJointBone();
+            boneGenerator.Play();
+        }
+        else
+            Debug.Log("Bvh Data Error!");
     }
 
     // Update is called once per frame

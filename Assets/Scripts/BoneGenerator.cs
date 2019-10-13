@@ -17,7 +17,7 @@ public class BoneGenerator : MonoBehaviour
 
     private List<Vector3> _bpath = new List<Vector3>();
 
-    public void Parse(string info)
+    public int Parse(string info)
     {
         _bvh = new Bvh();
         _bp = new BvhParser();
@@ -28,7 +28,9 @@ public class BoneGenerator : MonoBehaviour
         if(_bp.Parse(_bvh) == 0)
         {
             _bvh.Cal();
+            return 0;
         }
+        return -1;
     }
 
     public void SetPath(List<Vector3> path)

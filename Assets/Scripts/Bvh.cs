@@ -231,6 +231,15 @@ public class Bvh
         }
     }
 
+    /*public void ConcatBvh(Bvh bvh, int interpolating_frame)
+    {
+        for(int i = 0; i < _joints.Count; i++)
+        {
+            
+        }
+    }*/
+
+
     private Joint _root_joint;
     private List<Joint> _joints = new List<Joint>();
     private int _num_frames = 0;
