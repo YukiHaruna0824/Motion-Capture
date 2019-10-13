@@ -21,19 +21,10 @@ namespace SteeringBehavior.LevelEditor
             }
         }
 
-        void ModeChanged(PlayModeStateChange state)
-        {
-            if (state == PlayModeStateChange.ExitingEditMode)
-            {
-                Selection.activeGameObject = null;
-            }
-        }
-
         private void OnEnable()
         {
             first = true;
 
-            EditorApplication.playModeStateChanged += ModeChanged;
             _target = target as BezierPath;
 
             _target.gameObject.SetActive(true);
@@ -49,14 +40,12 @@ namespace SteeringBehavior.LevelEditor
 
         private void OnDisable()
         {
-            EditorApplication.playModeStateChanged -= ModeChanged;
             EditorApplication.update -= Check;
             PathManagerWindow._Path = null;
         }
 
         private void OnDestroy()
         {
-            EditorApplication.playModeStateChanged -= ModeChanged;
             EditorApplication.update -= Check;
             PathManagerWindow._Path = null;
         }
@@ -209,7 +198,7 @@ namespace SteeringBehavior.LevelEditor
             if (_target.nodes == null || _target.nodes.Length == 0)
             {
                 Vector3 nodePos = _target.transform.position - _target.transform.forward * 2;
-                GameObject goNode = new GameObject(string.Format("Node ({0})", _target.transform.childCount));
+                GameObject goNode = new GameObject(string.Format("Node ({0})", _target.transform.childCount - 1));
                 GameObject up = new GameObject("Slope_Up");
                 GameObject down = new GameObject("Slope_Down");
                 goNode.transform.SetParent(_target.transform);
@@ -222,18 +211,18 @@ namespace SteeringBehavior.LevelEditor
                 _target.nodes[0].GetChild(1).position = _target.nodes[0].position + new Vector3(0.5f, 0f, 0f);
             }
 
-            if (_target.nodes.Length != _target.transform.childCount)
+            if (_target.nodes.Length != _target.transform.childCount-1)
             {
-                _target.nodes = new Transform[_target.transform.childCount];
+                _target.nodes = new Transform[_target.transform.childCount-1];
                 Debug.Log(_target.nodes.Length);
             }
-            for (int i = 0; i < _target.nodes.Length; i++)
+            for (int i = 1; i < _target.nodes.Length + 1; i++)
             {
-                _target.nodes[i] = _target.transform.GetChild(i);
+                _target.nodes[i - 1] = _target.transform.GetChild(i);
                 _target._ctrlPoint.Add(new BezierPoint(
-                    _target.nodes[i].GetChild(0).position,
-                    _target.nodes[i].GetChild(1).position,
-                    _target.nodes[i].position
+                    _target.nodes[i - 1].GetChild(0).position,
+                    _target.nodes[i - 1].GetChild(1).position,
+                    _target.nodes[i - 1].position
                     ));
             }
         }
@@ -330,8 +319,8 @@ namespace SteeringBehavior.LevelEditor
             for (int i = 0; _target.simulateBezierPath != null && i < _target.simulateBezierPath.Count - 1; i++)
             {
                 //if (print == true)
-                    //Debug.Log(Vector3.Magnitude(_target.simulateBezierPath[i + 1] - _target.simulateBezierPath[i]));
-                Handles.color = Color.yellow;
+                //Debug.Log(Vector3.Magnitude(_target.simulateBezierPath[i + 1] - _target.simulateBezierPath[i]));
+                Handles.color = Color.blue;
                 Handles.DrawLine(_target.simulateBezierPath[i], _target.simulateBezierPath[i + 1]);
             }
 

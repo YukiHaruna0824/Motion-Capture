@@ -28,7 +28,7 @@ public class LevelData
     {
         _paths = new PathData[paths.Length];
         for (int i = 0; i < paths.Length; i++)
-            _paths[i] = new PathData(paths[i]._ctrlPoint);
+            _paths[i] = new PathData(paths[i]._ctrlPoint,paths[i].fpath);
     }
 }
 
@@ -36,8 +36,10 @@ public class LevelData
 public class PathData {
     public int _pointLength;
     public List<BezierPoint> _ctrlPoint;
+    public string _fpath;
 
-    public PathData(List<BezierPoint> ctrlPoint) {
+    public PathData(List<BezierPoint> ctrlPoint,string fpath) {
+        _fpath = fpath;
         _pointLength = ctrlPoint.Count;
         _ctrlPoint = ctrlPoint;
     }

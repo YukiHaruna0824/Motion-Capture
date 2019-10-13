@@ -10,13 +10,18 @@ public class BezierPath : MonoBehaviour
     [HideInInspector]
     public Transform[] nodes;
 
+    [HideInInspector]
     public bool nodeChange;
-
+    [HideInInspector]
     public List<Vector3> simulateBezierPath = new List<Vector3>();
-
+    [HideInInspector]
     public float[] BezierSpeed;
+    [HideInInspector]
     public int[] BezierArea;
     private int _area;
+
+    [HideInInspector]
+    public string fpath;
 
     public void Preview()
     {
@@ -179,15 +184,14 @@ public class BezierPath : MonoBehaviour
         return new Vector3(x, y, z);
     }
 
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.green;
-    }
-
     // Start is called before the first frame update
     void Start()
     {
-
+        BoneGenerator boneGenerator = GetComponentInChildren<BoneGenerator>();
+        boneGenerator.Parse(fpath);
+        boneGenerator.SetPath(simulateBezierPath);
+        boneGenerator.GenerateJointBone();
+        boneGenerator.Play();
     }
 
     // Update is called once per frame

@@ -37,20 +37,6 @@ namespace SteeringBehavior.LevelEditor
                 instance.Repaint();
         }
 
-        void PlayStateNotifier()
-        {
-            EditorApplication.playModeStateChanged += ModeChanged;
-        }
-
-        void ModeChanged(PlayModeStateChange state)
-        {
-            if (state == PlayModeStateChange.ExitingEditMode)
-            {
-                Selection.activeGameObject = null;
-                instance.Close();
-            }
-        }
-
         private void Update()
         {
             if (instance == null)
@@ -150,7 +136,24 @@ namespace SteeringBehavior.LevelEditor
             path.transform.SetParent(pm.transform);
             path.transform.localPosition = Vector3.zero;
             path.transform.localRotation = Quaternion.identity;
+
             Selection.activeGameObject = path.gameObject;
+
+            GameObject bonePrefab = Resources.Load<GameObject>("BoneGenerator");
+            GameObject bone = Instantiate(bonePrefab);
+            BoneGenerator boneGenerator = bone.GetComponent<BoneGenerator>();
+
+            boneGenerator.transform.SetParent(path.transform);
+
+            string fpath = EditorUtility.OpenFilePanel("BVH Import", Application.dataPath, "bvh");
+
+            if (string.IsNullOrEmpty(fpath))
+            {
+                EditorUtility.DisplayDialog("Editor", "讀取BVH檔案失敗", "OK");
+                return;
+            }
+
+            path.fpath = fpath;
         }
 
         void ImportLevel()
@@ -197,6 +200,14 @@ namespace SteeringBehavior.LevelEditor
 
                 bp._ctrlPoint = paths[i]._ctrlPoint;
                 bp.nodes = new Transform[paths[i]._pointLength];
+
+                GameObject bonePrefab = Resources.Load<GameObject>("BoneGenerator");
+                GameObject bone = Instantiate(bonePrefab);
+                BoneGenerator boneGenerator = bone.GetComponent<BoneGenerator>();
+
+                boneGenerator.transform.SetParent(bp.transform);
+
+                bp.fpath = paths[i]._fpath;
 
                 for (int j = 0; j < paths[i]._pointLength; j++)
                 {
@@ -323,7 +334,7 @@ namespace SteeringBehavior.LevelEditor
         void AddNode()
         {
             Transform transform = _Path.transform;
-            int nodeCount = transform.childCount;
+            int nodeCount = transform.childCount - 1;
 
             GameObject goNode = new GameObject("Node (" + nodeCount + ")");
             GameObject up = new GameObject("Slope_Up");
@@ -332,9 +343,9 @@ namespace SteeringBehavior.LevelEditor
             goNode.transform.SetParent(transform);
 
             _Path.nodes = new Transform[nodeCount + 1];
-            for (int i = 0; i < transform.childCount; i++)
+            for (int i = 1; i < transform.childCount; i++)
             {
-                _Path.nodes[i] = transform.GetChild(i);
+                _Path.nodes[i-1] = transform.GetChild(i);
             }
 
             Vector3 dir = new Vector3(5f, 0f, 0f);
@@ -403,6 +414,14 @@ namespace SteeringBehavior.LevelEditor
             _Path._ctrlPoint = data._ctrlPoint;
             _Path.nodes = new Transform[_Path._ctrlPoint.Count];
 
+            GameObject bonePrefab = Resources.Load<GameObject>("BoneGenerator");
+            GameObject bone = Instantiate(bonePrefab);
+            BoneGenerator boneGenerator = bone.GetComponent<BoneGenerator>();
+
+            boneGenerator.transform.SetParent(_Path.transform);
+
+            _Path.fpath = data._fpath;
+
             // Create Path
             for (int i = 0; i < _Path._ctrlPoint.Count; i++)
             {
@@ -433,7 +452,7 @@ namespace SteeringBehavior.LevelEditor
                 return;
             }
 
-            PathData file = new PathData(_Path._ctrlPoint);
+            PathData file = new PathData(_Path._ctrlPoint,_Path.fpath);
 
             string jsonContent = JsonUtility.ToJson(file);
             string path = EditorUtility.SaveFilePanel("File Export", Application.dataPath, _Path.name, "json");
@@ -449,21 +468,16 @@ namespace SteeringBehavior.LevelEditor
 
         void ImportBVH()
         {
-            string path = EditorUtility.OpenFilePanel("File Import", Application.dataPath, "bvh");
+            string fpath = EditorUtility.OpenFilePanel("BVH Import", Application.dataPath, "bvh");
 
-            if (string.IsNullOrEmpty(path))
+            if (string.IsNullOrEmpty(fpath))
             {
                 EditorUtility.DisplayDialog("Editor", "讀取BVH檔案失敗", "OK");
                 return;
             }
-            GameObject bonePrefab = Resources.Load<GameObject>("BoneGenerator");
-            GameObject bone = Instantiate(bonePrefab);
-            BoneGenerator boneGenerator = bone.GetComponent<BoneGenerator>();
+            BoneGenerator boneGenerator = _Path.GetComponentInChildren<BoneGenerator>();
 
-            boneGenerator.Parse(path);
-            boneGenerator.SetPath(_Path.simulateBezierPath);
-            boneGenerator.GenerateJointBone();
-            boneGenerator.Play();
+            _Path.fpath = fpath;
         }
     }
 }
