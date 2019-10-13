@@ -108,7 +108,8 @@ public class BoneGenerator : MonoBehaviour
         }
 
         transform.position = _bpath[pathIndex];
-        transform.LookAt(_bpath[(++pathIndex) % _bpath.Count], Vector3.up);
+        if(_pathIndex != _bpath.Count - 1)
+            transform.LookAt(_bpath[(pathIndex + 1) % _bpath.Count], Vector3.up);
     }
 
     IEnumerator PlayAnimation()
