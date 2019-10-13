@@ -384,7 +384,7 @@ public class BvhParser
     private Bvh _bvh;
 
 
-    private bool _debug = false;
+    private bool _debug = true;
 }
 
 

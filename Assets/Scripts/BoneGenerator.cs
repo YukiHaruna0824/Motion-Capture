@@ -24,8 +24,7 @@ public class BoneGenerator : MonoBehaviour
         return _pathIndex;
     }
 
-    public void Parse(string info)
-    {
+    public void Parse(string info)    {
         _bvh = new Bvh();
         _bp = new BvhParser();
         _frameIndex = 0;
@@ -35,7 +34,9 @@ public class BoneGenerator : MonoBehaviour
         if(_bp.Parse(_bvh) == 0)
         {
             _bvh.Cal();
+            return 0;
         }
+        return -1;
     }
 
     public void SetPath(List<Vector3> path)
@@ -119,8 +120,7 @@ public class BoneGenerator : MonoBehaviour
 
         transform.position = _bpath[pathIndex];
         if (_pathIndex != _bpath.Count - 1)
-            transform.LookAt(_bpath[(pathIndex + 1) % _bpath.Count], Vector3.up);
-    }
+            transform.LookAt(_bpath[(pathIndex + 1) % _bpath.Count], Vector3.up);    }
 
     IEnumerator PlayAnimation()
     {
