@@ -168,14 +168,14 @@ public class GameManager : MonoBehaviour
         int index = 0;
         foreach (Joint joint in _bvh.Joints)
         {
-            _joints[index].transform.localPosition = joint.LocalPos[frame];
+            _joints[index].transform.localPosition = (index == 0) ? new Vector3(0, 0, 0) : joint.LocalPos[frame];
             _joints[index++].transform.localRotation = Quaternion.Euler(joint.LocalRot[frame]);
         }
     }
 
     private void Parse()
     {
-        string fp = System.IO.Path.Combine(Application.streamingAssetsPath, "walk_01.bvh");
+        string fp = System.IO.Path.Combine(Application.streamingAssetsPath, "example.bvh");
         Debug.Log(fp);
 
         _bp.GetTokenInfo(fp);
